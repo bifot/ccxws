@@ -120,17 +120,13 @@ export abstract class BasicClient extends EventEmitter implements IClient {
     }
 
     public subscribeOrders() {
-        this._connect();
-        if (!this.hasOrders || !this._wss || !this._wss.isConnected) return false;
-        this._sendSubOrders();
-        return true;
+        if (!this.hasOrders) return false;
+        return this._subscribe({} as Market, new Map(), this._sendSubOrders.bind(this));
     }
 
     public unsubscribeOrders() {
-        this._connect();
-        if (!this.hasOrders || !this._wss || !this._wss.isConnected) return false;
-        this._sendUnsubOrders();
-        return true;
+        if (!this.hasOrders) return;
+        this._unsubscribe({} as Market, new Map(), this._sendUnsubOrders.bind(this));
     }
 
     public subscribeLevel2Snapshots(market: Market) {
@@ -215,6 +211,13 @@ export abstract class BasicClient extends EventEmitter implements IClient {
             // to send the signal to our server!
             if (this._wss && this._wss.isConnected) {
                 sendFn(remote_id, market);
+            } else {
+                const interval = setInterval(() => {
+                    if (this._wss && this._wss.isConnected) {
+                        clearInterval(interval);
+                        sendFn(remote_id, market);
+                    }
+                }, 100);
             }
             return true;
         }
@@ -233,6 +236,13 @@ export abstract class BasicClient extends EventEmitter implements IClient {
 
             if (this._wss.isConnected) {
                 sendFn(remote_id, market);
+            } else {
+                const interval = setInterval(() => {
+                    if (this._wss && this._wss.isConnected) {
+                        clearInterval(interval);
+                        sendFn(remote_id, market);
+                    }
+                }, 100);
             }
         }
     }
