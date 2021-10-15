@@ -20,6 +20,7 @@ export type SendFn = (remoteId: string, market: Market) => void;
 export abstract class BasicClient extends EventEmitter implements IClient {
     public hasTickers: boolean;
     public hasTrades: boolean;
+    public hasOrders: boolean;
     public hasCandles: boolean;
     public hasLevel2Snapshots: boolean;
     public hasLevel2Updates: boolean;
@@ -56,6 +57,7 @@ export abstract class BasicClient extends EventEmitter implements IClient {
 
         this.hasTickers = false;
         this.hasTrades = true;
+        this.hasOrders = false;
         this.hasCandles = false;
         this.hasLevel2Snapshots = false;
         this.hasLevel2Updates = false;
@@ -115,6 +117,20 @@ export abstract class BasicClient extends EventEmitter implements IClient {
     public unsubscribeTrades(market: Market): Promise<void> {
         if (!this.hasTrades) return;
         this._unsubscribe(market, this._tradeSubs, this._sendUnsubTrades.bind(this));
+    }
+
+    public subscribeOrders() {
+        this._connect();
+        if (!this.hasOrders || !this._wss || !this._wss.isConnected) return false;
+        this._sendSubOrders();
+        return true;
+    }
+
+    public unsubscribeOrders() {
+        this._connect();
+        if (!this.hasOrders || !this._wss || !this._wss.isConnected) return false;
+        this._sendUnsubOrders();
+        return true;
     }
 
     public subscribeLevel2Snapshots(market: Market) {
@@ -330,6 +346,14 @@ export abstract class BasicClient extends EventEmitter implements IClient {
      */
     protected _onClosed() {
         this.emit("closed");
+    }
+
+    protected _sendSubOrders() {
+        //
+    }
+
+    protected _sendUnsubOrders() {
+        //
     }
 
     ////////////////////////////////////////////

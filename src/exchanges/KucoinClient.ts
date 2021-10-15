@@ -14,6 +14,7 @@ import crypto from "crypto";
 import { Trade } from "../Trade";
 import { Candle } from "../Candle";
 import { Ticker } from "../Ticker";
+import { Order } from "../Order";
 import { Level2Point } from "../Level2Point";
 import { Level2Update } from "../Level2Update";
 import { Market } from "../Market";
@@ -68,6 +69,7 @@ export class KucoinClient extends BasicClient {
         this.authorize = authorize;
         this.hasTickers = true;
         this.hasTrades = true;
+        this.hasOrders = true;
         this.hasCandles = true;
         this.hasLevel2Snapshots = false;
         this.hasLevel2Updates = true;
@@ -225,6 +227,30 @@ export class KucoinClient extends BasicClient {
                 type: "unsubscribe",
                 topic: "/market/match:" + remote_id,
                 privateChannel: false,
+                response: true,
+            }),
+        );
+    }
+
+    protected _sendSubOrders() {
+        this._wss.send(
+            JSON.stringify({
+                id: new Date().getTime(),
+                type: "subscribe",
+                topic: "/spotMarket/tradeOrders",
+                privateChannel: true,
+                response: true,
+            }),
+        );
+    }
+
+    protected _sendUnsubOrders() {
+        this._wss.send(
+            JSON.stringify({
+                id: new Date().getTime(),
+                type: "unsubscribe",
+                topic: "/spotMarket/tradeOrders",
+                privateChannel: true,
                 response: true,
             }),
         );
@@ -389,6 +415,12 @@ export class KucoinClient extends BasicClient {
         // l3 change
         if (msg.subject === "update") {
             this._processL3UpdateUpdate(msg);
+            return;
+        }
+
+        // orders
+        if (msg.subject === "orderChange") {
+            this._processOrders(msg);
             return;
         }
     }
@@ -820,6 +852,50 @@ export class KucoinClient extends BasicClient {
             bids: [point],
         });
         this.emit("l3update", update, market);
+    }
+
+    protected _processOrders(msg: any) {
+        let {
+            symbol,
+            orderType,
+            orderId,
+            orderTime,
+            side,
+            type,
+            size,
+            remainSize,
+            filledSize,
+            price,
+            status,
+            ts,
+        } = msg.data;
+
+        if (ts.length === 19) {
+            ts = ts.substring(0, 13);
+        }
+
+        if (orderTime.length === 19) {
+            orderTime = orderTime.substring(0, 13);
+        }
+
+        const [base, quote] = symbol.split("-");
+
+        this.emit("order", new Order({
+            exchange: this.name,
+            base,
+            quote,
+            orderId,
+            status,
+            type,
+            orderSide: side,
+            orderType,
+            orderTime: parseInt(orderTime),
+            unix: parseInt(ts),
+            size,
+            price,
+            remainSize,
+            filledSize,
+        }));
     }
 
     protected async __requestLevel3Snapshot(market: Market) {
