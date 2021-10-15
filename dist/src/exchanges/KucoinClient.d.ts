@@ -4,9 +4,14 @@ import { CandlePeriod } from "../CandlePeriod";
 import { ClientOptions } from "../ClientOptions";
 import { CancelableFn } from "../flowcontrol/Fn";
 import { Market } from "../Market";
+export declare type KucoinAuthorizationOptions = {
+    endpoint: string;
+    pingInterval: number;
+};
 export declare type KucoinClientOptions = ClientOptions & {
     sendThrottleMs?: number;
     restThrottleMs?: number;
+    authorize?: () => Promise<KucoinAuthorizationOptions>;
 };
 /**
  * Kucoin client has a hard limit of 100 subscriptions per socket connection.
@@ -19,13 +24,14 @@ export declare class KucoinClient extends BasicClient {
     candlePeriod: CandlePeriod;
     readonly restThrottleMs: number;
     readonly connectInitTimeoutMs: number;
+    readonly authorize: () => Promise<KucoinAuthorizationOptions>;
     protected _pingIntervalTime: number;
     protected _connectId: string;
     protected _sendMessage: CancelableFn;
     protected _requestLevel2Snapshot: CancelableFn;
     protected _requestLevel3Snapshot: CancelableFn;
     protected _pingInterval: NodeJS.Timeout;
-    constructor({ wssPath, watcherMs, sendThrottleMs, restThrottleMs, }?: KucoinClientOptions);
+    constructor({ wssPath, watcherMs, sendThrottleMs, restThrottleMs, authorize, }?: KucoinClientOptions);
     protected _beforeClose(): void;
     protected _beforeConnect(): void;
     protected _startPing(): void;

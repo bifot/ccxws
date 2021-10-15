@@ -54,12 +54,13 @@ const NotImplementedFn_1 = require("../NotImplementedFn");
  * subscriptions.
  */
 class KucoinClient extends BasicClient_1.BasicClient {
-    constructor({ wssPath, watcherMs, sendThrottleMs = 10, restThrottleMs = 250, } = {}) {
+    constructor({ wssPath, watcherMs, sendThrottleMs = 10, restThrottleMs = 250, authorize, } = {}) {
         super(wssPath, "KuCoin", undefined, watcherMs);
         this._sendSubLevel2Snapshots = NotImplementedFn_1.NotImplementedFn;
         this._sendUnsubLevel2Snapshots = NotImplementedFn_1.NotImplementedFn;
         this._sendSubLevel3Snapshots = NotImplementedFn_1.NotImplementedFn;
         this._sendUnsubLevel3Snapshots = NotImplementedFn_1.NotImplementedFn;
+        this.authorize = authorize;
         this.hasTickers = true;
         this.hasTrades = true;
         this.hasCandles = true;
@@ -119,7 +120,13 @@ class KucoinClient extends BasicClient_1.BasicClient {
         // Retry http request until successful
         while (!wssPath) {
             try {
-                const raw = await https.post("https://openapi-v2.kucoin.com/api/v1/bullet-public"); // prettier-ignore
+                let raw;
+                if (this.authorize) {
+                    raw = await this.authorize();
+                }
+                else {
+                    raw = await https.post("https://openapi-v2.kucoin.com/api/v1/bullet-public"); // prettier-ignore
+                }
                 if (!raw.data || !raw.data.token)
                     throw new Error("Unexpected token response");
                 const { token, instanceServers } = raw.data;
