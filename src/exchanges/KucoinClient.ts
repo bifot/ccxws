@@ -25,9 +25,15 @@ import { Level3Point } from "../Level3Point";
 import { Level3Snapshot } from "../Level3Snapshot";
 import { NotImplementedFn } from "../NotImplementedFn";
 
+export type KucoinAuthorizationOptions = {
+    endpoint: string;
+    pingInterval: number;
+};
+
 export type KucoinClientOptions = ClientOptions & {
     sendThrottleMs?: number;
     restThrottleMs?: number;
+    authorize?: () => Promise<KucoinAuthorizationOptions>;
 };
 
 /**
@@ -42,6 +48,8 @@ export class KucoinClient extends BasicClient {
     public readonly restThrottleMs: number;
     public readonly connectInitTimeoutMs: number;
 
+    public readonly authorize: () => Promise<KucoinAuthorizationOptions>;
+
     protected _pingIntervalTime: number;
     protected _connectId: string;
     protected _sendMessage: CancelableFn;
@@ -54,8 +62,10 @@ export class KucoinClient extends BasicClient {
         watcherMs,
         sendThrottleMs = 10,
         restThrottleMs = 250,
+        authorize,
     }: KucoinClientOptions = {}) {
         super(wssPath, "KuCoin", undefined, watcherMs);
+        this.authorize = authorize;
         this.hasTickers = true;
         this.hasTrades = true;
         this.hasCandles = true;
@@ -129,7 +139,14 @@ export class KucoinClient extends BasicClient {
         // Retry http request until successful
         while (!wssPath) {
             try {
-                const raw: any = await https.post("https://openapi-v2.kucoin.com/api/v1/bullet-public"); // prettier-ignore
+                let raw: any;
+
+                if (this.authorize) {
+                    raw = await this.authorize();
+                } else {
+                    raw = await https.post("https://openapi-v2.kucoin.com/api/v1/bullet-public"); // prettier-ignore
+                }
+
                 if (!raw.data || !raw.data.token) throw new Error("Unexpected token response");
                 const { token, instanceServers } = raw.data;
                 const { endpoint, pingInterval } = instanceServers[0];
