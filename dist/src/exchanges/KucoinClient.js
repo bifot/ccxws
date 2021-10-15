@@ -37,6 +37,7 @@ const crypto_1 = __importDefault(require("crypto"));
 const Trade_1 = require("../Trade");
 const Candle_1 = require("../Candle");
 const Ticker_1 = require("../Ticker");
+const Order_1 = require("../Order");
 const Level2Point_1 = require("../Level2Point");
 const Level2Update_1 = require("../Level2Update");
 const Level2Snapshots_1 = require("../Level2Snapshots");
@@ -63,6 +64,7 @@ class KucoinClient extends BasicClient_1.BasicClient {
         this.authorize = authorize;
         this.hasTickers = true;
         this.hasTrades = true;
+        this.hasOrders = true;
         this.hasCandles = true;
         this.hasLevel2Snapshots = false;
         this.hasLevel2Updates = true;
@@ -199,6 +201,24 @@ class KucoinClient extends BasicClient_1.BasicClient {
             response: true,
         }));
     }
+    _sendSubOrders() {
+        this._wss.send(JSON.stringify({
+            id: new Date().getTime(),
+            type: "subscribe",
+            topic: "/spotMarket/tradeOrders",
+            privateChannel: true,
+            response: true,
+        }));
+    }
+    _sendUnsubOrders() {
+        this._wss.send(JSON.stringify({
+            id: new Date().getTime(),
+            type: "unsubscribe",
+            topic: "/spotMarket/tradeOrders",
+            privateChannel: true,
+            response: true,
+        }));
+    }
     _sendSubCandles(remote_id) {
         this._wss.send(JSON.stringify({
             id: new Date().getTime(),
@@ -323,6 +343,11 @@ class KucoinClient extends BasicClient_1.BasicClient {
         // l3 change
         if (msg.subject === "update") {
             this._processL3UpdateUpdate(msg);
+            return;
+        }
+        // orders
+        if (msg.subject === "orderChange") {
+            this._processOrders(msg);
             return;
         }
     }
@@ -699,6 +724,32 @@ class KucoinClient extends BasicClient_1.BasicClient {
             bids: [point],
         });
         this.emit("l3update", update, market);
+    }
+    _processOrders(msg) {
+        let { symbol, orderType, orderId, orderTime, side, type, size, remainSize, filledSize, price, status, ts, } = msg.data;
+        if (ts.length === 19) {
+            ts = ts.substring(0, 13);
+        }
+        if (orderTime.length === 19) {
+            orderTime = orderTime.substring(0, 13);
+        }
+        const [base, quote] = symbol.split("-");
+        this.emit("order", new Order_1.Order({
+            exchange: this.name,
+            base,
+            quote,
+            orderId,
+            status,
+            type,
+            orderSide: side,
+            orderType,
+            orderTime: parseInt(orderTime),
+            unix: parseInt(ts),
+            size,
+            price,
+            remainSize,
+            filledSize,
+        }));
     }
     async __requestLevel3Snapshot(market) {
         try {

@@ -20,6 +20,7 @@ export declare abstract class BasicClient extends EventEmitter implements IClien
     readonly name: string;
     hasTickers: boolean;
     hasTrades: boolean;
+    hasOrders: boolean;
     hasCandles: boolean;
     hasLevel2Snapshots: boolean;
     hasLevel2Updates: boolean;
@@ -44,6 +45,8 @@ export declare abstract class BasicClient extends EventEmitter implements IClien
     unsubscribeCandles(market: Market): Promise<void>;
     subscribeTrades(market: Market): boolean;
     unsubscribeTrades(market: Market): Promise<void>;
+    subscribeOrders(): boolean;
+    unsubscribeOrders(): boolean;
     subscribeLevel2Snapshots(market: Market): boolean;
     unsubscribeLevel2Snapshots(market: Market): Promise<void>;
     subscribeLevel2Updates(market: Market): boolean;
@@ -113,6 +116,8 @@ export declare abstract class BasicClient extends EventEmitter implements IClien
      * Handles the closed event
      */
     protected _onClosed(): void;
+    protected _sendSubOrders(): void;
+    protected _sendUnsubOrders(): void;
     protected abstract _onMessage(msg: any): any;
     protected abstract _sendSubTicker(remoteId: string, market: Market): any;
     protected abstract _sendSubCandles(remoteId: string, market: Market): any;

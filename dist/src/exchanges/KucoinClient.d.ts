@@ -50,6 +50,8 @@ export declare class KucoinClient extends BasicClient {
     protected _sendUnsubTicker(remote_id: string): void;
     protected _sendSubTrades(remote_id: string): void;
     protected _sendUnsubTrades(remote_id: string): void;
+    protected _sendSubOrders(): void;
+    protected _sendUnsubOrders(): void;
     protected _sendSubCandles(remote_id: string): void;
     protected _sendUnsubCandles(remote_id: string): void;
     protected _sendSubLevel2Updates(remote_id: string): void;
@@ -235,5 +237,6 @@ export declare class KucoinClient extends BasicClient {
     }
    */
     protected _processL3UpdateUpdate(msg: any): void;
+    protected _processOrders(msg: any): void;
     protected __requestLevel3Snapshot(market: Market): Promise<void>;
 }

@@ -29,6 +29,7 @@ class BasicClient extends events_1.EventEmitter {
         this._watcher = new Watcher_1.Watcher(this, watcherMs);
         this.hasTickers = false;
         this.hasTrades = true;
+        this.hasOrders = false;
         this.hasCandles = false;
         this.hasLevel2Snapshots = false;
         this.hasLevel2Updates = false;
@@ -86,6 +87,20 @@ class BasicClient extends events_1.EventEmitter {
         if (!this.hasTrades)
             return;
         this._unsubscribe(market, this._tradeSubs, this._sendUnsubTrades.bind(this));
+    }
+    subscribeOrders() {
+        this._connect();
+        if (!this.hasOrders || !this._wss || !this._wss.isConnected)
+            return false;
+        this._sendSubOrders();
+        return true;
+    }
+    unsubscribeOrders() {
+        this._connect();
+        if (!this.hasOrders || !this._wss || !this._wss.isConnected)
+            return false;
+        this._sendUnsubOrders();
+        return true;
     }
     subscribeLevel2Snapshots(market) {
         if (!this.hasLevel2Snapshots)
@@ -267,6 +282,12 @@ class BasicClient extends events_1.EventEmitter {
      */
     _onClosed() {
         this.emit("closed");
+    }
+    _sendSubOrders() {
+        //
+    }
+    _sendUnsubOrders() {
+        //
     }
 }
 exports.BasicClient = BasicClient;
