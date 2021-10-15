@@ -46,7 +46,7 @@ export declare abstract class BasicClient extends EventEmitter implements IClien
     subscribeTrades(market: Market): boolean;
     unsubscribeTrades(market: Market): Promise<void>;
     subscribeOrders(): boolean;
-    unsubscribeOrders(): boolean;
+    unsubscribeOrders(): void;
     subscribeLevel2Snapshots(market: Market): boolean;
     unsubscribeLevel2Snapshots(market: Market): Promise<void>;
     subscribeLevel2Updates(market: Market): boolean;

@@ -89,18 +89,14 @@ class BasicClient extends events_1.EventEmitter {
         this._unsubscribe(market, this._tradeSubs, this._sendUnsubTrades.bind(this));
     }
     subscribeOrders() {
-        this._connect();
-        if (!this.hasOrders || !this._wss || !this._wss.isConnected)
+        if (!this.hasOrders)
             return false;
-        this._sendSubOrders();
-        return true;
+        return this._subscribe({}, new Map(), this._sendSubOrders.bind(this));
     }
     unsubscribeOrders() {
-        this._connect();
-        if (!this.hasOrders || !this._wss || !this._wss.isConnected)
-            return false;
-        this._sendUnsubOrders();
-        return true;
+        if (!this.hasOrders)
+            return;
+        this._unsubscribe({}, new Map(), this._sendUnsubOrders.bind(this));
     }
     subscribeLevel2Snapshots(market) {
         if (!this.hasLevel2Snapshots)
@@ -163,6 +159,14 @@ class BasicClient extends events_1.EventEmitter {
             if (this._wss && this._wss.isConnected) {
                 sendFn(remote_id, market);
             }
+            else {
+                const interval = setInterval(() => {
+                    if (this._wss && this._wss.isConnected) {
+                        clearInterval(interval);
+                        sendFn(remote_id, market);
+                    }
+                }, 100);
+            }
             return true;
         }
         return false;
@@ -178,6 +182,14 @@ class BasicClient extends events_1.EventEmitter {
             map.delete(remote_id);
             if (this._wss.isConnected) {
                 sendFn(remote_id, market);
+            }
+            else {
+                const interval = setInterval(() => {
+                    if (this._wss && this._wss.isConnected) {
+                        clearInterval(interval);
+                        sendFn(remote_id, market);
+                    }
+                }, 100);
             }
         }
     }
